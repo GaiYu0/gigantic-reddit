@@ -1,16 +1,23 @@
 import sys
-import pyspark
+from pyspark.conf import SparkConf
+from pyspark.context import SparkContext
+from pyspark.sql.session import SparkSession
 
-def map_fn(row):
+def row2kv_pair(row):
     d = row.asDict()
-    return {d['parent_id'] : d['id']}
+    return (d['parent_id'], d['id'])
 
-def reduce_fn(d, e):
-    d.update(e)
-    return d
+ss = SparkSession.builder.master("local").appName("reddit").getOrCreate()
+sc = ss.sparkContext
+logger = sc._jvm.org.apache.log4j
+logger.LogManager.getLogger("org"). setLevel(logger.Level.ERROR)
+logger.LogManager.getLogger("akka").setLevel(logger.Level.ERROR)
 
-df = spark.read.format('json').load(sys.argv[1])
-conf = SparkConf().setAppName('reddit').setMaster('local')
-sc = SparkContext(conf=conf)
-rdd = sc.distribute(df[['id', 'parent_id']].collect())
-csr = rdd.map(map_fn).reduce(reduce_fn)
+df = ss.read.format('json').load(sys.argv[1])
+rdd = sc.parallelize(df[['id', 'parent_id']].collect())
+kv_pairs = rdd.map(row2kv_pair)
+csr = kv_pairs.groupByKey().collect()
+print(type(csr))
+print(len(csr))
+print(csr[0])
+print(list(csr[0][1]))
