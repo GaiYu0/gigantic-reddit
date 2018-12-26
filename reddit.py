@@ -8,14 +8,14 @@ from pyspark.context import SparkContext
 from pyspark.sql import Row
 from pyspark.sql.session import SparkSession
 
-ss = SparkSession.builder.master('local').appName('reddit').config('spark.ui.showConsoleProgress', True).getOrCreate()
+ss = SparkSession.builder.getOrCreate()
 sc = ss.sparkContext
 logger = sc._jvm.org.apache.log4j
 logger.LogManager.getLogger("org"). setLevel(logger.Level.WARN)
 logger.LogManager.getLogger("akka").setLevel(logger.Level.WARN)
 
 '''
-df = ss.read.format('json').load(sys.argv[2])
+df = ss.read.format('json').load(sys.argv[1])
 rdd = df[['id', 'parent_id']].rdd
 rdd = rdd.map(lambda row: (row['id'], row['parent_id']))
 rdd = rdd.groupWith(rdd)
@@ -24,18 +24,21 @@ rdd.reduceByKey(operator.add)
 print(rdd.count())
 '''
 
-def fn(row):
-    tok = word_tokenize(row['body'])
-    return [Row(parent_id=row['parent_id'], idx=tok2idx[t]) for t in tok]
+def f(row):
+    return [tok2idx.get(tok, 0) for tok in word_tokenize(row['body'])]
 
-df = ss.read.format('json').load(sys.argv[2])
+def g(row):
+    return len(word_tokenize(row['body']))
+
+df = ss.read.format('json').load(sys.argv[1])
 rdd = df[['parent_id', 'body']].rdd
-tok2idx = pickle.load(open(sys.argv[3], 'rb'))
-rdd = rdd.flatMap(fn)
-df = rdd.toDF()
-
-embeddings = np.load(sys.argv[4])
-embeddings = sc.parallelize([(i, embedding) for i, embedding in enumerate(embeddings)]).toDF('idx', 'embedding')
-df.join(embeddings, on='idx', how='inner').groupBy('parent_id').avg('embedding')
-
-# df = ss.read.format('json').load(sys.argv[2])
+tok2idx = pickle.load(open(sys.argv[2], 'rb'))
+rdd = rdd.map(f).persist()
+print('idx')
+np.save('idx', np.array(rdd.reduce(operator.add).collect(), dtype=np.int32))
+print('seg')
+np.save('seg', np.array(rdd.map(len).collect(), dtype=np.int32))
+'''
+rdd = rdd.flatMap(f)
+rdd.saveAsTextFile(sys.argv[1] + '-part')
+'''
