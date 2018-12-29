@@ -6,7 +6,6 @@ from nltk.tokenize import word_tokenize
 import numpy as np
 import pyspark.sql.functions as F
 from pyspark.sql.session import SparkSession
-from pyspark.sql.types import IntegerType
 from pyspark.sql.window import Window
 import scipy.sparse as sps
 from utils import base36_decode
@@ -48,9 +47,11 @@ logger.LogManager.getLogger("akka").setLevel(logger.Level.WARN)
 
 sf = None
 cf = None
-# TODO join author author_id
-for f in sys.argv[3:]:
-    df = ss.read.format('json').load(f)
+author_id = ss.read.format('json').load(sys.argv[3]) \
+    .withColumn('author_id', F.regexp_replace(df.id, 't2_', '').cast('integer')) \
+    [['name', 'author_id']]
+for f in sys.argv[4:]:
+    df = ss.read.format('json').load(f).join(author_id, 'inner')
     if f.startswith('RS'):
         sf = df if sf is None else sf.union(df)
     elif f.startswith('RC'):
