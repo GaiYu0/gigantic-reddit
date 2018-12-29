@@ -9,6 +9,7 @@ from pyspark.sql.session import SparkSession
 from pyspark.sql.types import IntegerType
 from pyspark.sql.window import Window
 import scipy.sparse as sps
+from utils import base36_decode
 
 indicator_t = np.int8
 size_t = np.int32
@@ -31,7 +32,13 @@ def embed(rdd, indexer, embeddings):
     col = len(embeddings)
     csr = sps.csr_matrix((data, indices, indptr), dtype=indicator_t, shape=[row, col])
     len_array = np.expand_dims(np.array(len_list, dtype=size_t), 1)
-    return csr.dot(embeddings) / len_array
+    minimum = np.ones_like(len_array, dtype=size_t)
+    '''
+    assert not np.isnan(embeddings).any()
+    assert not np.isnan(len_array).any()
+    assert not np.isclose(len_array, np.zeros_like(len_array)).any()
+    '''
+    return csr.dot(embeddings) / np.maximum(minimum, len_array)
 
 ss = SparkSession.builder.getOrCreate()
 sc = ss.sparkContext
@@ -41,6 +48,7 @@ logger.LogManager.getLogger("akka").setLevel(logger.Level.WARN)
 
 sf = None
 cf = None
+# TODO join author author_id
 for f in sys.argv[3:]:
     df = ss.read.format('json').load(f)
     if f.startswith('RS'):
@@ -52,13 +60,12 @@ for f in sys.argv[3:]:
 
 n_submissions = sf.count()
 n_comments = cf.count()
-cf = cf.withColumn('link_id', F.regexp_replace(cf.link_id, 't3_', '').cast(IntegerType()))
 
 s_data = np.ones(n_submissions, dtype=indicator_t)
 s_idx = np.arange(n_submissions, dtype=size_t)
-s_sid = np.array(sf.rdd.map(getter('id')).collect(), dtype=size_t)
+s_sid = np.array(sf.rdd.map(getter('id')).map(base36_decode).collect(), dtype=size_t)
 c_data = np.ones(n_comments, dtype=indicator_t)
-c_sid = np.array(cf.rdd.map(getter('link_id')).collect(), dtype=size_t)
+c_sid = np.array(cf.rdd.map(getter('link_id')).map(lambda s: s.replace('t3_', '')).map(base36_decode).collect(), dtype=size_t)
 c_idx = np.arange(n_comments, dtype=size_t)
 max_sid = max(np.max(s_sid), np.max(c_sid)) + 1
 s_shape = [n_submissions, max_sid]
@@ -77,3 +84,8 @@ minimum = np.ones([n_submissions, 1], dtype=size_t)
 n_neighbors = s_idx2c_idx.sum(axis=1, dtype=size_t)
 divisor = np.maximum(minimum, n_neighbors)
 px = np.hstack([sx, s_idx2c_idx @ cx / divisor])
+
+'''
+c_uid = 
+c_sid2uid = sps.coo_matrix((c_data, (c_sid, c_uid)), dtype=indicator_t, shape=)
+'''
