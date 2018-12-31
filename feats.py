@@ -45,13 +45,16 @@ logger = sc._jvm.org.apache.log4j
 logger.LogManager.getLogger("org"). setLevel(logger.Level.WARN)
 logger.LogManager.getLogger("akka").setLevel(logger.Level.WARN)
 
+# TODO largest communities
+
 sf = None
 cf = None
 author_id = ss.read.format('json').load(sys.argv[3]) \
-    .withColumn('author_id', F.regexp_replace(df.id, 't2_', '').cast('integer')) \
-    [['name', 'author_id']]
+    .withColumnRenamed('name', 'author') \
+    .withColumn('author_id', F.regexp_replace('id', 't2_', '').cast('integer')) \
+    [['author', 'author_id']]
 for f in sys.argv[4:]:
-    df = ss.read.format('json').load(f).join(author_id, 'inner')
+    df = ss.read.format('json').load(f).join(author_id, 'author', 'left')
     if f.startswith('RS'):
         sf = df if sf is None else sf.union(df)
     elif f.startswith('RC'):
@@ -87,6 +90,7 @@ divisor = np.maximum(minimum, n_neighbors)
 px = np.hstack([sx, s_idx2c_idx @ cx / divisor])
 
 '''
-c_uid = 
-c_sid2uid = sps.coo_matrix((c_data, (c_sid, c_uid)), dtype=indicator_t, shape=)
+c_uid = np.array(cf.rdd.map(getter('author_id')).collect(), dtype=size_t)
+max_uid = np.max(c_uid)
+c_sid2uid = sps.coo_matrix((c_data, (c_sid, c_uid)), dtype=indicator_t, shape=[n_submissions, )
 '''
