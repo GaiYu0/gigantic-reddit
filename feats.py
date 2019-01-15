@@ -54,7 +54,7 @@ author_id = ss.read.format('json').load(sys.argv[3]) \
     .withColumn('author_id', F.regexp_replace('id', 't2_', '').cast('integer')) \
     [['author', 'author_id']]
 for f in sys.argv[4:]:
-    df = ss.read.format('json').load(f).join(author_id, 'author', 'left')
+    df = ss.read.format('json').load(f).join(author_id, 'author', 'inner')
     if f.startswith('RS'):
         sf = df if sf is None else sf.union(df)
     elif f.startswith('RC'):
@@ -64,7 +64,28 @@ for f in sys.argv[4:]:
 
 n_submissions = sf.count()
 n_comments = cf.count()
+print(n_submissions, n_comments)
 
+sf = sf[['id']].withColumnRenamed('id', 'submission_id')
+cf = cf[['author_id', 'link_id']] \
+    .withColumnRenamed('link_id', 'submission_id') \
+    .withColumn('submission_id', F.regexp_replace('submission_id', 't3_', ''))
+sid_cid = sf.join(cf, 'submission_id', 'inner')
+print(sid_cid.count())
+sid_sid = sid_cid.alias('u').join(sid_cid.alias('v'), 'author_id', 'inner')
+print(sid_sid.count())
+u = sid_sid.select('u.submission_id').rdd.map(getter('submission_id')).map(base36_decode).collect()
+v = sid_sid.select('v.submission_id').rdd.map(getter('submission_id')).map(base36_decode).collect()
+unique_u, inverse = np.unique(u, return_inverse=True)
+coalesed_u = np.arange(len(unique_u))[inverse]
+unique_v, inverse = np.unique(v, return_inverse=True)
+coalesed_v = np.arange(len(unique_v))[inverse]
+assert len(coalesed_u) == len(coalesed_v)
+pickle.dump(len(unique_u), open('n_nodes', 'wb'))
+np.save('u', coalesed_u)
+np.save('v', coalesed_v)
+
+'''
 s_data = np.ones(n_submissions, dtype=indicator_t)
 s_idx = np.arange(n_submissions, dtype=size_t)
 s_sid = np.array(sf.rdd.map(getter('id')).map(base36_decode).collect(), dtype=size_t)
@@ -88,9 +109,4 @@ minimum = np.ones([n_submissions, 1], dtype=size_t)
 n_neighbors = s_idx2c_idx.sum(axis=1, dtype=size_t)
 divisor = np.maximum(minimum, n_neighbors)
 px = np.hstack([sx, s_idx2c_idx @ cx / divisor])
-
-'''
-c_uid = np.array(cf.rdd.map(getter('author_id')).collect(), dtype=size_t)
-max_uid = np.max(c_uid)
-c_sid2uid = sps.coo_matrix((c_data, (c_sid, c_uid)), dtype=indicator_t, shape=[n_submissions, )
 '''
