@@ -1,2 +1,13 @@
 glove/*
-reddit/*
+glove.*.*.zip
+
+RA_ALL
+RS*
+RC*
+
+n_nodes
+tok2idx
+*.npy
+
+.*.py.swp
+__pycache__/
