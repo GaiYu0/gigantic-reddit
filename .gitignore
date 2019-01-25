@@ -5,7 +5,6 @@ RA_ALL
 RS*
 RC*
 
-n_nodes
 tok2idx
 *.npy
 

@@ -1,18 +1,6 @@
 import time
-
-def base36_decode(s):
-    x = 0
-    power = 1
-    for c in s:
-        if '0' <= c <= '9':
-            digit = int(c)
-        elif 'a' <= c <= 'z':
-            digit = ord(c) - ord('a')
-        else:
-            raise RuntimeError(s)
-        x += digit * power
-        power *= 36
-    return x
+from pyspark.sql.functions import udf
+from pyspark.sql.types import IntegerType
 
 class Timer:
     def __init__(self, prefix):
@@ -23,4 +11,13 @@ class Timer:
         print(self.prefix)
 
     def __exit__(self, *args):
-        print(self.prefix, time.time() - self.t)
+        print(time.time() - self.t)
+
+def getter(field):
+    return lambda row: row[field]
+
+int36 = lambda x: int(x, 36)
+udf_int36 = udf(int36, IntegerType())
+fst = lambda x: x[0]
+snd = lambda x: x[1]
+starzip = lambda x: zip(*x)
