@@ -124,7 +124,7 @@ def labels(ss):
     rdd = rdd.map(utils.int36)
     y = np.array(rdd.collect())
     return y
-   
+
 def data(sc, ss, tok2idx, embeddings):
 #   print(ss.rdd.map(utils.getter('srid')).map(lambda x: x is None).reduce(operator.or_))
     sx, ss = embed_submissions(sc, ss, tok2idx, embeddings)
