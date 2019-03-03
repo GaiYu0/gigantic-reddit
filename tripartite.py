@@ -12,19 +12,23 @@ from pyspark.sql.session import SparkSession
 import utils
 
 def graph(sf, cf, af):
-    sf = sf.select('id', 'subreddit_id', 'title') \
-           .withColumnRenamed('id', 'sid') \
-           .withColumn('sid', utils.udf_int36('sid')) \
-           .withColumnRenamed('subreddit_id', 'srid')  # sid, srid, title
     af = af.select('name', 'id') \
            .withColumnRenamed('name', 'author') \
            .withColumn('aid', regexp_replace('id', 't2_', '')) \
            .withColumn('aid', utils.udf_int36('aid'))  # aid, author
+    sf = sf.join(af, 'author', 'inner') \
+           .select('aid', 'id', 'subreddit_id', 'title') \
+           .withColumnRenamed('id', 'sid') \
+           .withColumnRenamed('subreddit_id', 'srid') \
+           .withColumn('sid', utils.udf_int36('sid'))  # aid, sid, srid, title
     cf = cf.join(af, 'author', 'inner') \
            .select('aid', 'body', 'link_id') \
-           .withColumn('sid', regexp_replace('link_id', 't3_', '')) \
+           .withColumnRenamed('link_id', 'sid') \
+           .withColumn('sid', regexp_replace('sid', 't3_', '')) \
            .withColumn('sid', utils.udf_int36('sid'))  # aid, body, sid
 
+    sid = sf.select('sid').rdd.map(utils.getter('sid')).collect()
+    snid = range(len(sid))
     sc = sf.join(cf, 'sid', 'inner').persist()
 
     u = sc.alias('u')
