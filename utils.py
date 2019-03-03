@@ -21,3 +21,5 @@ udf_int36 = udf(int36, IntegerType())
 fst = lambda x: x[0]
 snd = lambda x: x[1]
 starzip = lambda x: zip(*x)
+column2rdd = lambda column: column.rdd.flatMap(lambda x: x)
+column2list = lambda column: column2rdd(column).collect()
