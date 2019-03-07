@@ -1,6 +1,10 @@
+from inspect import currentframe, getframeinfo
 import time
 from pyspark.sql.functions import udf
 from pyspark.sql.types import IntegerType
+
+filename = lambda: getframeinfo(currentframe().f_back).filename
+lineno = lambda: getframeinfo(currentframe().f_back).lineno
 
 class Timer:
     def __init__(self, prefix):
