@@ -8,7 +8,7 @@ import gluonnlp
 from nltk.tokenize import word_tokenize
 import mxnet as mx
 import numpy as np
-from pyspark.sql.functions import regexp_replace
+from pyspark.sql.functions import regexp_replace, collect_set
 from pyspark.sql.session import SparkSession
 import utils
 
@@ -49,10 +49,27 @@ def construct_graph(context, cf, sf, af):
     cf = cf.drop('author').join(caf, 'sid')
     sf = sf.drop('author').join(saf, 'sid')
 
+    cf_ = cf.drop('body')
+    print(cf_.alias('u').join(cf_.alias('v'), 'aid').select('u.sid', 'v.sid').distinct().count())
+    print(len(cf_.alias('u').join(cf_.alias('v'), 'aid').select('u.sid', 'v.sid').distinct().collect()))
+
+    '''
+    def flat_mapper(l):
+        a = np.array(l)
+        u, v = np.meshgrid(a, a)
+        return zip(u.ravel(), v.ravel())
+    print(utils.column2rdd(cf_.groupBy('aid').agg(collect_set('sid'))[["collect_set(sid)"]]).map(lambda l: len(l) ** 2).reduce(__import__('operator').add))
+    uv = utils.column2rdd(cf_.groupBy('aid').agg(collect_set('sid'))[["collect_set(sid)"]]).flatMap(flat_mapper).distinct().collect()
+    print(len(uv))
+    '''
+
     n_comments = cf.count()
     n_submissions = sf.count()
     cnid = np.arange(n_comments)
     snid = np.arange(n_submissions) + n_comments
+
+    print(n_comments, n_submissions)
+    raise SystemExit()
 
     arange2range = lambda x: range(x[0], x[-1] + 1)
 
@@ -142,6 +159,7 @@ with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
 with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
     np.save('v', v)
 
+'''
 tok2idx = pickle.load(open(sys.argv[1], 'rb'))
 embeddings = mx.nd.array(np.load(sys.argv[2]))
 cx = embed_nodes(utils.column2rdd(cf[['body']]), tok2idx, embeddings)
@@ -155,3 +173,4 @@ sy = np.array(utils.column2rdd(sf[['srid']]).collect())
 sy = np.array(utils.column2rdd(cf.join(sf, 'sid', 'inner')[['srid']]).collect())
 with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
     np.save('sy', sy)
+'''
