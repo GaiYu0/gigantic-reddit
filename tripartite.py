@@ -1,14 +1,13 @@
-# TODO connected components?
 from collections import defaultdict
 import os
-import operator
 import pickle
 import sys
+
 import gluonnlp
-from nltk.tokenize import word_tokenize
 import mxnet as mx
+from nltk.tokenize import word_tokenize
 import numpy as np
-from pyspark.sql.functions import regexp_replace, collect_set
+from pyspark.sql.functions import regexp_replace
 from pyspark.sql.session import SparkSession
 import utils
 
@@ -18,7 +17,7 @@ def construct_graph(context, cf, sf, af):
     --------
         Duplicated author names.
     """
-    af = af.select('name', 'id') \
+    af = af.select('id', 'name') \
            .withColumnRenamed('id', 'aid') \
            .withColumnRenamed('name', 'author') \
            .dropDuplicates(['author']) \
@@ -32,7 +31,7 @@ def construct_graph(context, cf, sf, af):
            .withColumnRenamed('id', 'sid') \
            .withColumnRenamed('subreddit_id', 'srid') \
            .withColumn('sid', utils.udf_int36('sid')) \
-           .withColumn('srid', regexp_replace('srid', 't2_', '')) \
+           .withColumn('srid', regexp_replace('srid', 't5_', '')) \
            .withColumn('srid', utils.udf_int36('srid'))         
 
     caf = cf.select('author', 'sid') \
@@ -43,33 +42,17 @@ def construct_graph(context, cf, sf, af):
             .join(af, 'author') \
             .drop('author') \
             .withColumnRenamed('aid', 'said')
+    # TODO persist?
     csf = caf.join(saf, 'sid').dropDuplicates(['sid'])
     caf = csf.select('sid', 'caid').withColumnRenamed('caid', 'aid')
     saf = csf.select('sid', 'said').withColumnRenamed('said', 'aid')
     cf = cf.drop('author').join(caf, 'sid')
     sf = sf.drop('author').join(saf, 'sid')
 
-    cf_ = cf.drop('body')
-    print(cf_.alias('u').join(cf_.alias('v'), 'aid').select('u.sid', 'v.sid').distinct().count())
-    print(len(cf_.alias('u').join(cf_.alias('v'), 'aid').select('u.sid', 'v.sid').distinct().collect()))
-
-    '''
-    def flat_mapper(l):
-        a = np.array(l)
-        u, v = np.meshgrid(a, a)
-        return zip(u.ravel(), v.ravel())
-    print(utils.column2rdd(cf_.groupBy('aid').agg(collect_set('sid'))[["collect_set(sid)"]]).map(lambda l: len(l) ** 2).reduce(__import__('operator').add))
-    uv = utils.column2rdd(cf_.groupBy('aid').agg(collect_set('sid'))[["collect_set(sid)"]]).flatMap(flat_mapper).distinct().collect()
-    print(len(uv))
-    '''
-
     n_comments = cf.count()
     n_submissions = sf.count()
     cnid = np.arange(n_comments)
     snid = np.arange(n_submissions) + n_comments
-
-    print(n_comments, n_submissions)
-    raise SystemExit()
 
     arange2range = lambda x: range(x[0], x[-1] + 1)
 
@@ -79,7 +62,6 @@ def construct_graph(context, cf, sf, af):
                       .withColumnRenamed('_2', 'snid')
     csu = np.array(utils.column2list(cf.join(sid2snid, 'sid')[['snid']]))
     csv = cnid
-    print(csu.shape, csv.shape)
 
     caid = utils.column2rdd(cf[['aid']])
     said = utils.column2rdd(sf[['aid']])
@@ -126,12 +108,14 @@ def embed_nodes(rdd, tok2idx, embeddings):
     rdd = rdd.map(mapper).persist()
     indptr = mx.nd.array(np.cumsum(np.array([0] + rdd.map(utils.fst).collect())))  # TODO insertion
     rdd = rdd.map(utils.snd).flatMap(lambda x: x).persist()
+
+    print(rdd.count())
+
     indices = mx.nd.array(rdd.map(utils.fst).collect())
     data = mx.nd.array(rdd.map(utils.snd).collect())
     shape = [len(indptr) - 1, len(embeddings)]
     csr_matrix = mx.nd.sparse.csr_matrix((data, indices, indptr), shape=shape)
-    with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
-        x = mx.nd.sparse.dot(csr_matrix, embeddings)
+    x = mx.nd.sparse.dot(csr_matrix, embeddings)
     return x.asnumpy()
 
 session = SparkSession.builder.getOrCreate()
@@ -144,33 +128,38 @@ cf = None
 sf = None
 for f in sys.argv[4:]:
     df = session.read.format('json').load(f)
-    if os.path.basename(f).startswith('RC'):
+    if os.path.basename(f).startswith('RC'):  # comments
+        df = df.select('author', 'body', 'link_id')
         cf = df if cf is None else cf.union(df)
-    elif os.path.basename(f).startswith('RS'):
+    elif os.path.basename(f).startswith('RS'):  # submissions
+        df = df.select('author', 'id', 'subreddit_id', 'title')
         sf = df if sf is None else sf.union(df)
     else:
         raise RuntimeError()
-af = session.read.format('json').load(sys.argv[3])
+af = session.read.format('json').load(sys.argv[3]).select('id', 'name')  # authors
 
 node_offsets, edge_offsets, u, v, type2lid, cf, sf = construct_graph(context, cf, sf, af)
 pickle.dump([node_offsets, edge_offsets, type2lid], open('layers', 'wb'))
-with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
-    np.save('u', u)
-with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
-    np.save('v', v)
+np.save('u', u)
+np.save('v', v)
 
-'''
 tok2idx = pickle.load(open(sys.argv[1], 'rb'))
 embeddings = mx.nd.array(np.load(sys.argv[2]))
 cx = embed_nodes(utils.column2rdd(cf[['body']]), tok2idx, embeddings)
+print(cf.count())
+print(cx.shape)
 sx = embed_nodes(utils.column2rdd(sf[['title']]), tok2idx, embeddings)
-with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
-    np.save('cx', cx)
-with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
-    np.save('sx', sx)
+print(sf.count())
+print(sx.shape)
+np.save('cx', cx)
+np.save('sx', sx)
 
 sy = np.array(utils.column2rdd(sf[['srid']]).collect())
-sy = np.array(utils.column2rdd(cf.join(sf, 'sid', 'inner')[['srid']]).collect())
-with utils.Timer('%s: %d' % (utils.filename(), utils.lineno())):
-    np.save('sy', sy)
-'''
+cy = np.array(utils.column2rdd(cf.join(sf, 'sid', 'inner')[['srid']]).collect())
+y = np.hstack([sy, cy])
+unique_y, inverse = np.unique(y, return_inverse=True)
+relabelled = np.arange(len(unique_y))[inverse]
+sy = relabelled[:len(sy)]
+cy = relabelled[len(sy):]
+np.save('sy', sy)
+np.save('cy', cy)
