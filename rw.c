@@ -14,9 +14,9 @@
 
 typedef std::pair<uint64_t, uint64_t> edge_t;
 
-const uint64_t n_authors = 4240972 - 1;
-const uint64_t n_comments = 29753437;
-const uint64_t n_submissions = 27166161 - 1;
+const uint64_t n_authors = 1512571 - 1;
+const uint64_t n_comments = 4040770;
+const uint64_t n_submissions = 3246685 - 1;
 const uint64_t n_samples = 1e9;
 const float threshold = 0.001;
 
