@@ -22,6 +22,7 @@ uid = np.array(uid_df.uid)
 utc_bag = cmnt_bag.map(lambda d: int(d['created_utc']))
 utc = np.array(utc_bag.compute())
 
+print(len(pid))
 np.savetxt('pid', pid, '%d')
 np.savetxt('uid', uid, '%d')
 np.savetxt('utc', utc, '%d')

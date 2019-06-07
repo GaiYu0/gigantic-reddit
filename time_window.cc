@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <vector>
 #include <set>
 #include <tuple>
@@ -62,9 +63,9 @@ int main(int argc, char* *argv) {
     if (stats_only) {
         parallel_n_pid_pairs.resize(m);
     } else {
-        parallel_pid_pair.resize(m);
+        parallel_pid_pairs.resize(m);
     }
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (uint64_t i = 0; i < m; ++i) {
         auto pid_i = std::get<0>(cmnts.at(i));
         auto uid_i = std::get<1>(cmnts.at(i));
@@ -76,7 +77,7 @@ int main(int argc, char* *argv) {
             auto pid_j = std::get<0>(cmnts.at(j));
             auto uid_j = std::get<1>(cmnts.at(j));
             auto utc_j = std::get<2>(cmnts.at(j));
-            if (utc_j < utc_i + T) {
+            if (utc_i + T < utc_j) {
                 break;
             }
             if (uid_j == uid_i) {
@@ -90,25 +91,33 @@ int main(int argc, char* *argv) {
         }
     }
 
-    std::vector<pid_pair> pid_pairs;
-    for (auto p = parallel_pid_pairs.begin(); p != parallel_pid_pairs.end(); ++p) {
-        pid_pairs.insert(pid_pairs.end(), p->begin(), p->end());
-    }
+    if (stats_only) {
+        uint64_t sum = 0;
+        for (auto p = parallel_n_pid_pairs.begin(); p != parallel_n_pid_pairs.end(); ++p) {
+            sum += *p;
+        }
+        std::cout << sum << std::endl;
+    } else {
+        std::vector<pid_pair> pid_pairs;
+        for (auto p = parallel_pid_pairs.begin(); p != parallel_pid_pairs.end(); ++p) {
+            pid_pairs.insert(pid_pairs.end(), p->begin(), p->end());
+        }
 
-    pid_pair_multiset mset(pid_pairs.begin(), pid_pairs.end());
-    std::vector<uint64_t> u, v, w;
-    u.reserve(mset.size());
-    v.reserve(mset.size());
-    w.reserve(mset.size());
-    for (auto p = mset.begin(); p != mset.end(); ++p) {
-        u.push_back(p->first);
-        v.push_back(p->second);
-        w.push_back(mset.count(*p));
-    }
+        pid_pair_multiset mset(pid_pairs.begin(), pid_pairs.end());
+        std::vector<uint64_t> u, v, w;
+        u.reserve(mset.size());
+        v.reserve(mset.size());
+        w.reserve(mset.size());
+        for (auto p = mset.begin(); p != mset.end(); ++p) {
+            u.push_back(p->first);
+            v.push_back(p->second);
+            w.push_back(mset.count(*p));
+        }
 
-    savetxt("u", u);
-    savetxt("v", v);
-    savetxt("w", w);
+        savetxt("u", u);
+        savetxt("v", v);
+        savetxt("w", w);
+    }
 
     return 0;
 }
