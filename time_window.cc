@@ -65,7 +65,7 @@ int main(int argc, char* *argv) {
     } else {
         parallel_pid_pairs.resize(m);
     }
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for (uint64_t i = 0; i < m; ++i) {
         auto pid_i = std::get<0>(cmnts.at(i));
         auto uid_i = std::get<1>(cmnts.at(i));
