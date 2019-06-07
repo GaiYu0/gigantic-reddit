@@ -28,6 +28,7 @@ typedef std::multiset<pid_pair> pid_pair_multiset;
 int main(int argc, char* *argv) {
     uint64_t m = atoi(argv[1]);
     uint64_t T = atoi(argv[2]);
+    bool stats_only = (argc > 3);
 
     std::vector<uint64_t> pid(m);
     std::vector<uint64_t> uid(m);
@@ -56,12 +57,21 @@ int main(int argc, char* *argv) {
     std::sort(cmnts.begin(), cmnts.end(),
               [](const cmnt_t &c, const cmnt_t &d) { return std::get<2>(c) < std::get<2>(d); });
 
-    std::vector<std::vector<pid_pair>> parallel_pid_pairs(m);
+    std::vector<uint64_t> parallel_n_pid_pairs;
+    std::vector<std::vector<pid_pair>> parallel_pid_pairs;
+    if (stats_only) {
+        parallel_n_pid_pairs.resize(m);
+    } else {
+        parallel_pid_pair.resize(m);
+    }
     #pragma omp parallel for
     for (uint64_t i = 0; i < m; ++i) {
         auto pid_i = std::get<0>(cmnts.at(i));
         auto uid_i = std::get<1>(cmnts.at(i));
         auto utc_i = std::get<2>(cmnts.at(i));
+        if (stats_only) {
+            parallel_n_pid_pairs.at(i) = 0;
+        }
         for (uint64_t j = i; j < m; ++j) {
             auto pid_j = std::get<0>(cmnts.at(j));
             auto uid_j = std::get<1>(cmnts.at(j));
@@ -70,8 +80,12 @@ int main(int argc, char* *argv) {
                 break;
             }
             if (uid_j == uid_i) {
-                parallel_pid_pairs.at(i).push_back(std::make_pair(pid_i, pid_j));
-                parallel_pid_pairs.at(i).push_back(std::make_pair(pid_j, pid_i));
+                if (stats_only) {
+                    ++parallel_n_pid_pairs.at(i);
+                } else {
+                    parallel_pid_pairs.at(i).push_back(std::make_pair(pid_i, pid_j));
+                    parallel_pid_pairs.at(i).push_back(std::make_pair(pid_j, pid_i));
+                }
             }
         }
     }
