@@ -103,15 +103,15 @@ int main(int argc, char* *argv) {
             pid_pairs.insert(pid_pairs.end(), p->begin(), p->end());
         }
 
-        pid_pair_multiset mset(pid_pairs.begin(), pid_pairs.end());
+        pid_pair_multiset multiset(pid_pairs.begin(), pid_pairs.end());
         std::vector<uint64_t> u, v, w;
-        u.reserve(mset.size());
-        v.reserve(mset.size());
-        w.reserve(mset.size());
-        for (auto p = mset.begin(); p != mset.end(); ++p) {
+        u.reserve(multiset.size());
+        v.reserve(multiset.size());
+        w.reserve(multiset.size());
+        for (auto p = multiset.begin(); p != multiset.end(); p = multiset.upper_bound(*p)) {
             u.push_back(p->first);
             v.push_back(p->second);
-            w.push_back(mset.count(*p));
+            w.push_back(multiset.count(*p));
         }
 
         savetxt("u", u);
