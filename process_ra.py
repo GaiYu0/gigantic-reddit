@@ -2,6 +2,7 @@ import argparse
 import dask.bag as db
 from dask.distributed import Client, progress
 import json
+import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--bs', type=int)
@@ -12,14 +13,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     user_bag = db.read_text(args.ra, blocksize=args.bs).map(json.loads)
-    user_bag = user_bag.map(lambda d: {'uid' : int(d['id'].replace('t2_', ''), 36),
+    user_bag = user_bag.map(lambda d: {'uid' : utils.int36(d['id'].replace('t2_', '')),
                                        'username' : d['name']})
     user_bag = user_bag.groupby(lambda d: d['username'])
-    user_bag = user_bag.map(lambda kv: [] if len(kv[1]) > 1 else kv[1])
+    user_bag = user_bag.map(lambda kv: [] if len(utils.snd(kv)) > 1 else utils.snd(kv))
     user_df = user_bag.flatten().to_dataframe()
     user_df_indexed_by_uid = user_df.set_index(user_df.uid)
     user_df_indexed_by_username = user_df.set_index(user_df.username)
     progress(user_df_indexed_by_uid)
     progress(user_df_indexed_by_username)
-    user_df_indexed_by_uid.to_hdf('user_df/indexed_by_uid-*', '/df', mode='w')
-    user_df_indexed_by_username.to_hdf('user_df/indexed_by_username-*', '/df', mode='w')
+    user_df_indexed_by_uid.to_hdf('user-df/indexed-by-uid-*', '/df', mode='w')
+    user_df_indexed_by_username.to_hdf('user-df/indexed-by-username-*', '/df', mode='w')
