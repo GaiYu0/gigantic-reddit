@@ -1,26 +1,35 @@
+import argparse
 import dask.bag as db
 import dask.dataframe as ddf
 from dask.distributed import Client
+import json
 import numpy as np
 import pandas as pd
 import utils
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--bs', type=int)
+parser.add_argument('--rs', type=str)
+
 if __name__ == '__main__':
     client = Client()
 
+    args = parser.parse_args()
+
     post_bag = db.read_text(args.rs, blocksize=args.bs).map(json.loads)
-    pid_title_username_df = post_bag.map(lambda d: {'pid' : d['id'],
+    post_df = post_bag.map(lambda d: {'pid' : d['id'],
                                                     'title' : d['title'],
-                                                    'username' : d['author']}).to_dataframe()
-    pid_title_username_df = pid_title_username_df.set_index(pid_title_username_df.username)
-    user_df_indexed_by_username = ddf.read_hdf('user-df/indexed-by-username-*')
-    post_df = ddf.merge(pid_title_username_df, user_df_indexed_by_username,
-                        how='inner', on='username', left_index=True, right_index=True)
+                                                    'username' : d['author'].encode('utf-8')}).to_dataframe()
+    post_df = post_df.set_index(post_df.username)
+    user_df_indexed_by_username = ddf.read_hdf('user-df/indexed-by-username-*', '/df')
+    post_df = post_df.merge(user_df_indexed_by_username, how='inner', on='username',
+                            left_index=True, right_index=True)
 
     u = np.loadtxt('u', dtype=np.int64)
     v = np.loadtxt('v', dtype=np.int64)
     w = np.loadtxt('w', dtype=np.int64)
-    isin = u.isin(pid) && v.isin(np.array(post_df.pid))
+    pid = np.array(post_df.pid)
+    isin = u.isin(pid) & v.isin(pid)
     u, v, w = dask.compute(dask.delayed(u.__getitem__)(isin),
                            dask.delayed(v.__getitem__)(isin),
                            dask.delayed(w.__getitem__)(isin))
@@ -34,8 +43,8 @@ if __name__ == '__main__':
     pid_nid_df = pid_nid_df.set_index(pid_nid_df.pid)
     post_df = post_df.drop('username')
     post_df = post_df.set_index(post_df.pid)
-    pid_nid_title_df = ddf.merge(pid_nid_df, post_df,
-                                 how='inner', on='pid', left_index=True, right_index=True)
+    pid_nid_title_df = pid_nid_df.merge(post_df, how='inner', on='pid',
+                                        left_index=True, right_index=True)
     nid_title_df = pid_nid_title_df.drop('pid')
     # sort?
 
