@@ -21,16 +21,13 @@ if __name__ == '__main__':
     user_df_indexed_by_username = ddf.read_hdf('user-df/indexed-by-username-*', '/df')
 
     cmnt_bag = db.read_text(args.rc, blocksize=args.bs).map(json.loads)
+    subreddit_frequencies = cmnt_bag.pluck('subreddit')
     cmnt_df = cmnt_bag.map(lambda d: {'pid' : utils.int36(d['link_id'].replace('t3_', '')),
                                       'username' : d['author'].encode('utf-8'),
                                       'utc' : int(d['created_utc'])}).to_dataframe()
-    # cmnt_df = cmnt_df.set_index(cmnt_df.username)
-    '''
+    cmnt_df = cmnt_df.set_index(cmnt_df.username)
     cmnt_df = cmnt_df.merge(user_df_indexed_by_username,
                             how='inner', on='username', left_index=True, right_index=True)
-    '''
-    cmnt_df = cmnt_df.merge(user_df_indexed_by_username,
-                            how='inner', on='username')
 
     pid = np.array(cmnt_df.pid)
     uid = np.array(cmnt_df.uid)
