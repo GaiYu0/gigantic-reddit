@@ -1,5 +1,6 @@
 import argparse
 
+import numpy as np
 from pyspark.sql.functions import regexp_replace
 from pyspark.sql.session import SparkSession
 
@@ -14,7 +15,7 @@ ss = SparkSession.builder.getOrCreate()
 user_df = ss.read.orc('user-df')
 post_df = None
 for f in args.rs:
-    df = ss.read.json(f)
+    df = ss.read.json(f).select('id', 'author', 'subreddit_id', 'title')
     post_df = df if post_df is None else post_df.union(df)
 post_df = post_df.withColumn('pid', utils.udf_int36('id')) \
                  .withColumnRenamed('author', 'username') \
