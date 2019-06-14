@@ -25,7 +25,7 @@ cmnt_df.withColumnRenamed('link_id', 'pid') \
        .withColumnRenamed('author', 'username') \
        .withColumn('utc', cmnt_df.created_utc.cast(IntegerType())) \
        .select('pid', 'username', 'utc') \
-       .join(post_df.drop('uid', 'srid', 'title'), ['pid']) \
+       .join(post_df.select('pid'), ['pid']) \
        .join(user_df, ['username']) \
        .drop('username') \
        .write.orc('cmnt-df', mode='overwrite')

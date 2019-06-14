@@ -114,6 +114,7 @@ int main(int argc, char* *argv) {
             w.push_back(multiset.count(*p));
         }
 
+        std::cout << u.size() << std::endl;
         savetxt("u", u);
         savetxt("v", v);
         savetxt("w", w);
