@@ -1,4 +1,3 @@
-# TODO(yu): relabel subreddit
 import argparse
 
 from pyspark.sql.functions import regexp_replace
@@ -8,8 +7,6 @@ import utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rs', type=str, nargs='+')
-parser.add_argument('--hi', type=str)
-parser.add_argument('--lo', type=str)
 
 args = parser.parse_args()
 
@@ -24,9 +21,6 @@ post_df = post_df.withColumn('pid', utils.udf_int36('id')) \
                  .dropna(subset=['subreddit_id']) \
                  .withColumn('srid', utils.udf_int36(regexp_replace('subreddit_id', 't5_', ''))) \
                  .select('pid', 'username', 'srid', 'title')
-lo = eval(args.lo)
-hi = eval(args.hi)
-top_k = next(zip(*sorted(post_df.groupBy('srid').count().rdd.map(lambda x: [x['srid'], x['count']]).collect(), key=utils.snd, reverse=True)[lo : hi]))
 post_df.filter(post_df.srid.isin(*top_k)) \
        .join(user_df, ['username']) \
        .drop('username') \
