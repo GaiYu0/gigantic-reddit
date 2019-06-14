@@ -1,8 +1,8 @@
 import argparse
 
 from pyspark.sql.functions import regexp_replace
-from pyspark.sql.session import sparksession
-from pyspark.sql.types import integertype
+from pyspark.sql.session import SparkSession
+from pyspark.sql.types import IntegerType
 
 import utils
 
@@ -24,6 +24,8 @@ cmnt_df.withColumnRenamed('link_id', 'pid') \
        .withColumn('pid', utils.udf_int36('pid')) \
        .withColumnRenamed('author', 'username') \
        .withColumn('utc', cmnt_df.created_utc.cast(IntegerType())) \
-       .join(post_df, ['pid']) \
+       .select('pid', 'username', 'utc') \
+       .join(post_df.drop('uid', 'srid', 'title'), ['pid']) \
        .join(user_df, ['username']) \
-       .write.orc('cmnt-df')
+       .drop('username') \
+       .write.orc('cmnt-df', mode='overwrite')

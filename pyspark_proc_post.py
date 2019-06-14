@@ -1,3 +1,4 @@
+# TODO(yu): relabel subreddit
 import argparse
 
 from pyspark.sql.functions import regexp_replace
@@ -19,10 +20,11 @@ for f in args.rs:
     post_df = df if post_df is None else post_df.union(df)
 post_df = post_df.withColumn('pid', utils.udf_int36('id')) \
                  .withColumnRenamed('author', 'username') \
-                 .withColumn('subreddit', utils.udf_int36(regexp_replace('subreddit_id', 't5_', ''))) \
-                 .select('pid', 'username', 'subreddit', 'title')
-top_k = utils.fst(zip(*sorted(post_df.groupBy('subreddit').count().rdd.map(lambda x: [x.subreddit, x.count]).collect(), key=utils.snd)[:args.top_k]))
-post_df.filter(post_df.subreddit.isin(topk))
-       .join(user_df, ['username'])
-       .drop('username')
-       .write.orc('post-df')
+                 .dropna(subset=['subreddit_id']) \
+                 .withColumn('srid', utils.udf_int36(regexp_replace('subreddit_id', 't5_', ''))) \
+                 .select('pid', 'username', 'srid', 'title')
+top_k = next(zip(*sorted(post_df.groupBy('srid').count().rdd.map(lambda x: [x['srid'], x['count']]).collect(), key=utils.snd, reverse=True)[:args.top_k]))
+post_df.filter(post_df.srid.isin(*top_k)) \
+       .join(user_df, ['username']) \
+       .drop('username') \
+       .write.orc('post-df', mode='overwrite')
