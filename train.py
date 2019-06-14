@@ -76,7 +76,9 @@ def main(args):
     g.ndata['features'] = features
     g.ndata['labels'] = labels
 
-    if args.model == "gcn_ns":
+    if args.model == "mlp":
+        mlp_train(ctx, args, n_classes, features, labels, train_mask, val_mask, test_mask)
+    elif args.model == "gcn_ns":
         gcn_ns_train(g, ctx, args, n_classes, train_nid, test_nid, n_test_samples)
     elif args.model == "gcn_cv":
         gcn_cv_train(g, ctx, args, n_classes, train_nid, test_nid, n_test_samples, False)
