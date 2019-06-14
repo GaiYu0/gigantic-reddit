@@ -13,7 +13,7 @@ args = parser.parse_args()
 ss = SparkSession.builder.getOrCreate()
 df = None
 for f in args.rx:
-    df = ss.read.json(f)
+    df = ss.read.json(f).select('subreddit_id')
     df = df if df is None else df.union(df)
 df = df.dropna(subset=['subreddit_id']) \
        .withColumn('srid', utils.udf_int36(regexp_replace('subreddit_id', 't5_', ''))) \
