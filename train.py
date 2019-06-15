@@ -7,8 +7,8 @@ import dgl
 import dgl.function as fn
 from dgl import DGLGraph
 from dgl.data import register_data_args, load_data
-from gcn_ns_sc import gcn_ns_train
-from gcn_cv_sc import gcn_cv_train
+# from gcn_ns_sc import gcn_ns_train
+# from gcn_cv_sc import gcn_cv_train
 from graphsage_cv import graphsage_cv_train
 
 import multiprocessing as mp
@@ -17,24 +17,27 @@ import scipy.sparse as sps
 
 def main(args):
     # load and preprocess dataset
-    # data = load_data(args)
+    data = load_data(args)
 
-    with mp.Pool(5) as pool:
-        u, v, w, x, y = pool.map(np.load, ['u.npy', 'v.npy', 'w.npy', 'x.npy', 'y.npy'])
+    '''
+    with mp.Pool(4) as pool:
+        src, dst, x, y = pool.map(np.load, ['src.npy', 'dst.npy', 'x.npy', 'y.npy'])
     data = type('', (), {})
-    # w = np.ones_like(w)
+    dat = np.ones_like(src)
     n = len(x)
-    adj = sps.coo_matrix((w, (u, v)), shape=[n, n])
-    data.graph = dgl.graph_index.create_graph_index(adj)
+    adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n])
+    data.graph = dgl.graph_index.create_graph_index(adj, readonly=True, multigraph=False)
     data.features = x
     data.labels = y
+    data.num_labels = len(np.unique(y))
     data.train_mask = np.zeros(n)
     data.val_mask = np.zeros(n)
     data.test_mask = np.zeros(n)
     p = npr.permutation(n)
-    data.traiargs.n_mask[p[:args.n_train]] = 1
+    data.train_mask[p[:args.n_train]] = 1
     data.val_mask[p[args.n_train : args.n_train + args.n_val]] = 1
     data.test_mask[p[args.n_train + args.n_val:]] = 1
+    '''
 
     if args.gpu >= 0:
         ctx = mx.gpu(args.gpu)
@@ -73,6 +76,12 @@ def main(args):
 
     # create GCN model
     g = DGLGraph(data.graph, readonly=True)
+    '''
+    g = DGLGraph()
+    g.add_nodes(n)
+    g.add_edges(src, dst)
+    g.readonly()
+    '''
     g.ndata['features'] = features
     g.ndata['labels'] = labels
 
@@ -119,7 +128,6 @@ if __name__ == '__main__':
             help="number of workers")
     parser.add_argument('--n-train', type=int)
     parser.add_argument('--n-val', type=int)
-    parser.add_argument('--n-test', type=int)
     args = parser.parse_args()
 
     print(args)

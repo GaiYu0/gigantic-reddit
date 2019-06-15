@@ -17,19 +17,12 @@ post_df = ss.read.orc('post-df')
 
 with mp.Pool(3) as pool:
     u, v, w = pool.map(partial(np.loadtxt, dtype=np.int64), ['u', 'v', 'w'])
-pid = np.array(post_df.select('pid').rdd.map(lambda x: x).collect())
-isin = np.isin(u, pid) & np.isin(v, pid)
-with mp.Pool(3) as pool:
-    u, v, w = pool.starmap(np.ndarray.__getitem__, [[u, isin], [v, isin], [w, isin]])
 
-with mp.Pool(2) as pool:
-    [unique_u, inverse_u], [unique_v, inverse_v] = pool.map(partial(np.unique, return_inverse=True), [u, v])
-unique, inverse = np.unique(np.hstack([unique_u, unique_v]), return_inverse=True)
+uv = np.hstack([u, v])
+unique, inverse = np.unique(uv, return_inverse=True)
 nid = np.arange(len(unique))
-def f(x):
-    return nid[inverse][:len(unique_u)][inverse_u] if x else nid[inverse][len(unique_u):][inverse_v]
-with mp.Pool(2) as pool:
-    src, dst = pool.map(f, [True, False])
+src = nid[inverse[:len(u)]]
+dst = nid[inverse[:len(v)]]
 post_df = post_df.join(sc.parallelize(zip(map(int, unique), map(int, nid))).toDF(['pid', 'nid']), 'pid')
 
 tok2idx = pickle.load(open('tok2idx', 'rb'))
