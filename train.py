@@ -17,15 +17,15 @@ import scipy.sparse as sps
 
 def main(args):
     # load and preprocess dataset
-    data = load_data(args)
+#   data = load_data(args)
 
-    '''
     with mp.Pool(4) as pool:
         src, dst, x, y = pool.map(np.load, ['src.npy', 'dst.npy', 'x.npy', 'y.npy'])
     data = type('', (), {})
     dat = np.ones_like(src)
     n = len(x)
-    adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n])
+#   adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n])
+    adj = sps.eye(n, n)
     data.graph = dgl.graph_index.create_graph_index(adj, readonly=True, multigraph=False)
     data.features = x
     data.labels = y
@@ -37,7 +37,6 @@ def main(args):
     data.train_mask[p[:args.n_train]] = 1
     data.val_mask[p[args.n_train : args.n_train + args.n_val]] = 1
     data.test_mask[p[args.n_train + args.n_val:]] = 1
-    '''
 
     if args.gpu >= 0:
         ctx = mx.gpu(args.gpu)
@@ -76,12 +75,10 @@ def main(args):
 
     # create GCN model
     g = DGLGraph(data.graph, readonly=True)
-    '''
     g = DGLGraph()
     g.add_nodes(n)
     g.add_edges(src, dst)
     g.readonly()
-    '''
     g.ndata['features'] = features
     g.ndata['labels'] = labels
 
