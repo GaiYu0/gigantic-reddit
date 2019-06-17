@@ -15,8 +15,13 @@ ss = SparkSession.builder.getOrCreate()
 sc = ss.sparkContext
 post_df = ss.read.orc('post-df')
 
+'''
 with mp.Pool(3) as pool:
     u, v, w = pool.map(partial(np.loadtxt, dtype=np.int64), ['u', 'v', 'w'])
+'''
+u = np.loadtxt('u', dtype=np.int64)
+v = np.loadtxt('v', dtype=np.int64)
+w = np.loadtxt('w', dtype=np.int64)
 
 uv = np.hstack([u, v])
 unique, inverse = np.unique(uv, return_inverse=True)
