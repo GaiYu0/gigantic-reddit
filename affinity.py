@@ -1,5 +1,5 @@
 import argparse
-import multiprocessing as mp
+import dask
 import numpy as np
 
 parser = argparse.ArgumentParser()
@@ -9,13 +9,14 @@ parser.add_argument('--y', type=str, default='y.npy')
 parser.add_argument('--n-classes', type=int)
 args = parser.parse_args()
 
-with mp.Pool(3) as pool:
-    src, dst, y = pool.map(np.load, [args.src, args.dst, args.y])
+src = np.load(args.src)
+dst = np.load(args.dst)
+y = np.load(args.y)
 
 y_src = y[src]
 y_dst = y[dst]
-n = [np.sum(y == i) for i in range(args.n_classes)]
-a = [[np.sum((y_src == i) & (y_dst == j)) / (n[i] * n[j])
-      for j in range(args.n_classes)] for i in range(args.n_classes)]
+ns = dask.compute(*[dask.delayed(lambda i: np.sum(y == i))(i) for i in range(args.n_classes)])
+print(ns)
+a = dask.compute([[dask.delayed(lambda i, j, m, n: np.sum((y_src == i) & (y_dst == j)) / (m * n))(i, j, m, n) for j, n in enumerate(ns)] for i, m in enumerate(ns)])
 np.set_printoptions(precision=3)
 print(np.array(a))

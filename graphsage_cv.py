@@ -275,7 +275,7 @@ def graphsage_cv_train(g, ctx, args, n_classes, train_nid, test_nid, n_test_samp
 
             nf.copy_to_parent(node_embed_names=node_embed_names)
         mx.nd.waitall()
-        print(msg_head + ': training takes ' + str(time.time() - start))
+#       print(msg_head + ': training takes ' + str(time.time() - start))
 
         infer_params = infer_model.collect_params()
 

@@ -28,6 +28,17 @@ def main(args):
     x = np.load('x.npy')
     y = np.load('y.npy')
 
+    '''
+    k = 100000
+    x = x[:k]
+    y = y[:k]
+    for i in np.unique(y):
+        print(i, np.sum(y == i))
+    f = (src < k) & (dst < k)
+    src = src[f]
+    dst = dst[f]
+    '''
+
     data = type('', (), {})
     dat = np.ones_like(src)
     n = len(x)
