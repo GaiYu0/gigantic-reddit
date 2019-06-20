@@ -18,5 +18,5 @@ y_dst = y[dst]
 ns = dask.compute(*[dask.delayed(lambda i: np.sum(y == i))(i) for i in range(args.n_classes)])
 print(ns)
 a = dask.compute([[dask.delayed(lambda i, j, m, n: np.sum((y_src == i) & (y_dst == j)) / (m * n))(i, j, m, n) for j, n in enumerate(ns)] for i, m in enumerate(ns)])
-np.set_printoptions(precision=3)
+# np.set_printoptions(precision=3)
 print(np.array(a))

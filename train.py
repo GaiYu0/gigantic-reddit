@@ -42,8 +42,8 @@ def main(args):
     data = type('', (), {})
     dat = np.ones_like(src)
     n = len(x)
-    adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n])
-#   adj = sps.eye(n, n)
+#   adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n])
+    adj = sps.eye(n, n)
     data.graph = dgl.graph_index.create_graph_index(adj, readonly=True, multigraph=False)
     data.features = x
     data.labels = y
