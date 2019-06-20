@@ -24,17 +24,19 @@ def main(args):
     x = np.load('x.npy')
     y = np.load('y.npy')
 
-    n = 10000
+    '''
+    _n = 15000
     unique_y = np.unique(y)
-    x = np.vstack([x[np.nonzero(y == i)[:n]] for i in unique_y])
-    y = np.repeat(unique_y, n)
+    x = np.vstack([x[np.nonzero(y == i)[0][:_n]] for i in unique_y])
+    y = np.repeat(unique_y, _n)
     k = len(unique_y)
-    adj, _ = sbm.generate(n * k, [n] * k, np.eye(k) * 0.1)
+    adj, _ = sbm.generate(_n * k, [_n] * k, np.eye(k) * 0.001)
+    '''
 
     dat = np.ones_like(src)
     n = len(x)
-#   adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n])
-    adj = sps.eye(n, n)
+    adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n]).maximum(sps.eye(n))
+#   adj = sps.eye(n, n)
 
     data = type('', (), {})
     data.graph = dgl.graph_index.create_graph_index(adj, readonly=True, multigraph=False)
@@ -86,10 +88,12 @@ def main(args):
 
     # create GCN model
     g = DGLGraph(data.graph, readonly=True)
+    '''
     g = DGLGraph()
     g.add_nodes(n)
     g.add_edges(src, dst)
     g.readonly()
+    '''
     g.ndata['features'] = features
     g.ndata['labels'] = labels
 
