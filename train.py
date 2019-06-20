@@ -11,39 +11,32 @@ from gcn_ns_sc import gcn_ns_train
 from gcn_cv_sc import gcn_cv_train
 from graphsage_cv import graphsage_cv_train
 
-import multiprocessing as mp
 import numpy.random as npr
 import scipy.sparse as sps
+import sbm
 
 def main(args):
     # load and preprocess dataset
 #   data = load_data(args)
 
-    '''
-    with mp.Pool(4) as pool:
-        src, dst, x, y = pool.map(np.load, ['src.npy', 'dst.npy', 'x.npy', 'y.npy'])
-    '''
     src = np.load('src.npy')
     dst = np.load('dst.npy')
     x = np.load('x.npy')
     y = np.load('y.npy')
 
-    '''
-    k = 100000
-    x = x[:k]
-    y = y[:k]
-    for i in np.unique(y):
-        print(i, np.sum(y == i))
-    f = (src < k) & (dst < k)
-    src = src[f]
-    dst = dst[f]
-    '''
+    n = 10000
+    unique_y = np.unique(y)
+    x = np.vstack([x[np.nonzero(y == i)[:n]] for i in unique_y])
+    y = np.repeat(unique_y, n)
+    k = len(unique_y)
+    adj, _ = sbm.generate(n * k, [n] * k, np.eye(k) * 0.1)
 
-    data = type('', (), {})
     dat = np.ones_like(src)
     n = len(x)
 #   adj = sps.coo_matrix((dat, (src, dst)), shape=[n, n])
     adj = sps.eye(n, n)
+
+    data = type('', (), {})
     data.graph = dgl.graph_index.create_graph_index(adj, readonly=True, multigraph=False)
     data.features = x
     data.labels = y
