@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
+#include <algorithm>
 #include <fstream>
 #include <utility>
 #include <vector>
@@ -21,8 +22,8 @@ void loadtxt(const char *f, std::vector<uint64_t> &a) {
     }
 }
 
-typedef counter_t std::pair<uint64_t, uint64_t>;
-typedef multiset_t std::vector<std::pair<uint64_t, uint64_t>>;
+typedef std::pair<uint64_t, uint64_t> counter_t;
+typedef std::vector<std::pair<uint64_t, uint64_t>> multiset_t;
 void merge(multiset_t &lhs, multiset_t &rhs, multiset_t &ret) {
     auto p = lhs.begin();
     auto q = rhs.begin();
@@ -78,17 +79,18 @@ int main(int argc, char* *argv) {
     std::vector<std::vector<uint64_t>> knn(n_posts);
     #pragma omp parallel for
     for (uint64_t i = 0; i < n_posts; ++i) {
-        auto begin = p2u_indptr[i];
-        auto end = p2u_indptr[i + 1];
-        assert(begin < end);
-        auto &prev = multiset_t();
-        prev.reserve(u2p_indptr[begin + 1] - u2p_indptr[begin]);
-        for (uint64_t k = u2p_indptr[begin]; k < u2p_indptr[begin + 1]; ++k) {
-            prev.push_back(std::make_pair(u2p_indices[k], 1));
+        auto first = p2u_indptr[i];
+        auto last = p2u_indptr[i + 1];
+        assert(first < last);
+        multiset_t head;
+        head.reserve(u2p_indptr[first + 1] - u2p_indptr[first]);
+        for (uint64_t k = u2p_indptr[first]; k < u2p_indptr[first + 1]; ++k) {
+            head.push_back(std::make_pair(u2p_indices[k], 1));
         }
-        for (uint64_t j = begin + 1; j < end; ++j) {
+        auto &prev = head;
+        for (uint64_t j = first + 1; j < last; ++j) {
             auto next = multiset_t();
-            next.reserve(u2p_indptr[begin + 1] - u2p_indptr[begin]);
+            next.reserve(u2p_indptr[first + 1] - u2p_indptr[first]);
             for (uint64_t k = u2p_indptr[j]; k < u2p_indptr[j + 1]; ++k) {
                 next.push_back(std::make_pair(u2p_indices[k], 1));
             }
@@ -98,7 +100,7 @@ int main(int argc, char* *argv) {
             prev = ret;
         }
         std::sort(prev.begin(), prev.end(),
-                  [](counter_t lhs, counter_t rhs) { lhs->second < rhs->second; });
+                  [](counter_t &lhs, counter_t &rhs) { return lhs.second < rhs.second; });
         for (uint64_t j = 0; j < degree && j < prev.size(); ++j) {
             knn[i].push_back(prev.rbegin()[j].first);
         }
