@@ -35,6 +35,7 @@ indptr = np.array(np.cumsum([0] + rdd.map(len).collect()))
 indices = np.array(rdd.flatMap(lambda x: x).collect())
 a = sps.csr_matrix((np.ones_like(indices), indices, indptr), shape=(m, m))
 b = a.maximum(a.transpose()).tocoo()
+print(b.shape)
 
 np.save('src', b.col)
 np.save('dst', b.row)
