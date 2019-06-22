@@ -47,9 +47,9 @@ def tokenize(x):
         d[idx] += 1
     if d:
         n = sum(d.values())
-        return [[x.nid, len(d)], [[k, d[k] / n] for k in sorted(d)]]
+        return [[x.compact_pid, len(d)], [[k, d[k] / n] for k in sorted(d)]]
     else:
-        return [[x.nid, 0], tuple()]
+        return [[x.compact_pid, 0], tuple()]
 
 embeddings = nd.array(np.load('embeddings.npy'))
 x_rdd = post_df.rdd.map(tokenize)
