@@ -18,4 +18,4 @@ for f in args.rx:
 df = df.dropna(subset=['subreddit_id']) \
        .withColumn('srid', utils.udf_int36(regexp_replace('subreddit_id', 't5_', ''))) \
        .groupBy('srid').count().toPandas()
-df.sort_values(by='count', ascending=False).to_hdf('srid-df', '/df')
+df.sort_values(by='count', ascending=False).reset_index().to_hdf('srid-df', '/df')
