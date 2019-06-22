@@ -24,7 +24,7 @@ def top_k(x, k=5):
     indices, data = x
     return indices[np.argsort(data)[-k:]]
 rdd = rdd.map(top_k)
-indptr = np.array(rdd.map(len).collect())
+indptr = np.array(np.cumsum([0] + rdd.map(len).collect()))
 indices = np.array(rdd.flatMap(lambda x: x).collect())
 a = sps.csr_matrix((np.ones_like(indices), indices, indptr), shape=(m, m))
 b = a.maximum(a.transpose())
