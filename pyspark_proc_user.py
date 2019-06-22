@@ -14,9 +14,7 @@ args = parser.parse_args()
 ss = SparkSession.builder.getOrCreate()
 user_df = ss.read.json(args.ra) \
                  .select('id', 'name') \
-                 .withColumnRenamed('id', 'uid') \
-                 .withColumn('uid', regexp_replace('uid', 't2_', '')) \
-                 .withColumn('uid', utils.udf_int36('uid')) \
+                 .withColumn('uid', utils.udf_int36(regexp_replace('id', 't2_', ''))) \
                  .withColumnRenamed('name', 'username')
 u_df = user_df.groupBy('username').count().filter('count = 1').drop('count')
 user_df.join(u_df, ['username']).write.orc('user-df', mode='overwrite')
