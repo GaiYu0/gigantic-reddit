@@ -18,7 +18,7 @@ u2p = sps.csr_matrix((np.ones_like(u2p_indices), u2p_indices, u2p_indptr), shape
 p2p = p2u @ u2p
 
 idx = p2p.indptr[1 : -1]
-rdd = ss.parallelize(zip(np.split(p2p.indices, idx), np.split(p2p.data, idx)))
+rdd = sc.parallelize(zip(np.split(p2p.indices, idx), np.split(p2p.data, idx)))
 k = 5
 rdd = rdd.map(lambda indices, data: indices[np.argsort(data)[-k:]])
 indptr = np.array(rdd.map(len).collect())
