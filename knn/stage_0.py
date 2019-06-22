@@ -5,9 +5,11 @@ from pyspark.sql.session import SparkSession
 ss = SparkSession.builder.getOrCreate()
 sc = ss.sparkContext
 
-user_df = ss.read.orc('user-df')
-post_df = ss.read.orc('post-df')
+# user_df = ss.read.orc('user-df')
+# post_df = ss.read.orc('post-df')
 cmnt_df = ss.read.orc('cmnt-df')
+user_df = cmnt_df.select('uid').dropDuplicates()
+post_df = cmnt_df.select('pid').dropDuplicates()
 
 collect_column = lambda df, column: df.select(column).rdd.flatMap(lambda x: x).collect()
 cmnt_df = cmnt_df.join(sc.parallelize(zip(collect_column(post_df, 'pid'), range(post_df.count()))).toDF(['pid', 'compact_pid']), 'pid') \
