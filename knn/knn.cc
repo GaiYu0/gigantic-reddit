@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <utility>
 #include <vector>
 
@@ -54,9 +55,10 @@ int main(int argc, char* *argv) {
     auto n_users = atoi(argv[3]);
     auto degree = atoi(argv[4]);
 
-    std::vector<uint64_t> p2u_indptr(n_posts);
+    std::cout << __FILE__ << ' ' << __LINE__ << std::endl;
+    std::vector<uint64_t> p2u_indptr(n_posts + 1);
     std::vector<uint64_t> p2u_indices(n_cmnts);
-    std::vector<uint64_t> u2p_indptr(n_users);
+    std::vector<uint64_t> u2p_indptr(n_users + 1);
     std::vector<uint64_t> u2p_indices(n_cmnts);
     #pragma omp parallel for
     for (int i = 0; i < 4; ++i) {
@@ -76,23 +78,24 @@ int main(int argc, char* *argv) {
         }
     }
 
+    std::cout << __FILE__ << ' ' << __LINE__ << std::endl;
     std::vector<std::vector<uint64_t>> knn(n_posts);
     #pragma omp parallel for
     for (uint64_t i = 0; i < n_posts; ++i) {
-        auto first = p2u_indptr[i];
-        auto last = p2u_indptr[i + 1];
+        auto first = p2u_indptr.at(i);
+        auto last = p2u_indptr.at(i + 1);
         assert(first < last);
         multiset_t head;
-        head.reserve(u2p_indptr[first + 1] - u2p_indptr[first]);
-        for (uint64_t k = u2p_indptr[first]; k < u2p_indptr[first + 1]; ++k) {
-            head.push_back(std::make_pair(u2p_indices[k], 1));
+        head.reserve(u2p_indptr.at(first + 1) - u2p_indptr.at(first));
+        for (uint64_t k = u2p_indptr.at(first); k < u2p_indptr.at(first + 1); ++k) {
+            head.push_back(std::make_pair(u2p_indices.at(k), 1));
         }
         auto &prev = head;
         for (uint64_t j = first + 1; j < last; ++j) {
             auto next = multiset_t();
-            next.reserve(u2p_indptr[first + 1] - u2p_indptr[first]);
-            for (uint64_t k = u2p_indptr[j]; k < u2p_indptr[j + 1]; ++k) {
-                next.push_back(std::make_pair(u2p_indices[k], 1));
+            next.reserve(u2p_indptr.at(first + 1) - u2p_indptr.at(first));
+            for (uint64_t k = u2p_indptr.at(j); k < u2p_indptr.at(j + 1); ++k) {
+                next.push_back(std::make_pair(u2p_indices.at(k), 1));
             }
             auto ret = multiset_t();
             // ret.reserve(prev.size() + next.size());
@@ -102,7 +105,7 @@ int main(int argc, char* *argv) {
         std::sort(prev.begin(), prev.end(),
                   [](counter_t &lhs, counter_t &rhs) { return lhs.second < rhs.second; });
         for (uint64_t j = 0; j < degree && j < prev.size(); ++j) {
-            knn[i].push_back(prev.rbegin()[j].first);
+            knn.at(i).push_back(prev.rbegin()[j].first);
         }
     }
 
