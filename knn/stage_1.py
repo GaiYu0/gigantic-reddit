@@ -20,8 +20,10 @@ p2p = p2u @ u2p
 
 idx = p2p.indptr[1 : -1]
 rdd = sc.parallelize(zip(np.split(p2p.indices, idx), np.split(p2p.data, idx)))
-k = 5
-rdd = rdd.map(lambda indices, data: indices[np.argsort(data)[-k:]])
+def top_k(x, k=5):
+    indices, data = x
+    return indices[np.argsort(data)[-k:]]
+rdd = rdd.map(top_k)
 indptr = np.array(rdd.map(len).collect())
 indices = np.array(rdd.flatMap(lambda x: x).collect())
 a = sps.csr_matrix((np.ones_like(indices), indices, indptr), shape=(m, m))
