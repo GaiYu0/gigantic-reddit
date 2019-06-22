@@ -1,13 +1,10 @@
 from collections import defaultdict
-from functools import partial
-import multiprocessing as mp
 import pickle
 
 from gluonnlp.data import SpacyTokenizer
 import mxnet.ndarray as nd
 import numpy as np
 from pyspark.sql.session import SparkSession
-from pyspark.sql.types import IntegerType, StructField, StructType
 
 from utils import fst, snd, loadtxt
 
