@@ -40,25 +40,26 @@ post_df = post_df.join(cmnt_df.select('pid', 'compact_pid').dropDuplicates(), 'p
 
 tok2idx = pickle.load(open('tok2idx', 'rb'))
 tokenizer = SpacyTokenizer()
-def tokenize(x):
+def tokenize(title):
     d = defaultdict(lambda: 0)
-    for tok in tokenizer(x.title):
+    for tok in tokenizer(title):
         idx = tok2idx.get(tok, 0)  # TODO default value
         d[idx] += 1
     if d:
         n = sum(d.values())
-        return [[x.compact_pid, len(d)], [[k, d[k] / n] for k in sorted(d)]]
+        return [len(d), [[k, d[k] / n] for k in sorted(d)]]
     else:
-        return [[x.compact_pid, 0], tuple()]
+        return [0, tuple()]
 
 embeddings = nd.array(np.load('embeddings.npy'))
-x_rdd = post_df.rdd.map(tokenize)
-indptr  = nd.array(np.cumsum([0] + x_rdd.map(fst).map(snd).collect()))
+x_rdd = post_df.rdd.map(lambda row: [row.compact_pid, row.title]).sortByKey().map(snd).map(tokenize)
+indptr  = nd.array(np.cumsum([0] + x_rdd.map(fst).collect()))
 indices = nd.array(x_rdd.map(snd).flatMap(lambda x: x).map(fst).collect())
 data = nd.array(x_rdd.map(snd).flatMap(lambda x: x).map(snd).collect())
 shape = [len(indptr) - 1, len(embeddings)]
 matrix = nd.sparse.csr_matrix((data, indices, indptr), shape=shape)
-x = nd.sparse.dot(matrix, embeddings).asnumpy()[np.argsort(x_rdd.map(fst).map(fst).collect())]
+x = nd.sparse.dot(matrix, embeddings).asnumpy()
+np.save('x', x)
 
 y = np.array(post_df.rdd.map(lambda row: [row.compact_pid, row.srid]).sortByKey().map(lambda kv: kv[1]).collect())
 unique, inverse = np.unique(y, return_inverse=True)
