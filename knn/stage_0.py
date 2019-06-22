@@ -29,7 +29,31 @@ dask.compute(dask.delayed(np.savetxt)('p2u-indptr', p2u_indptr, fmt='%d'),
              dask.delayed(np.savetxt)('u2p-indptr', u2p_indptr, fmt='%d'),
              dask.delayed(np.savetxt)('u2p-indices', u2p_indices, fmt='%d'))
 
-y = np.array(post_df.join(cmnt_df.select('pid', 'compact_pid').dropDuplicates(), 'pid').rdd.map(lambda row: [row.compact_pid, row.srid]).sortByKey().map(lambda kv: kv[1]).collect())
+post_df = post_df.join(cmnt_df.select('pid', 'compact_pid').dropDuplicates(), 'pid')
+
+tok2idx = pickle.load(open('tok2idx', 'rb'))
+tokenizer = SpacyTokenizer()
+def tokenize(x):
+    d = defaultdict(lambda: 0)
+    for tok in tokenizer(x.title):
+        idx = tok2idx.get(tok, 0)  # TODO default value
+        d[idx] += 1
+    if d:
+        n = sum(d.values())
+        return [[x.nid, len(d)], [[k, d[k] / n] for k in sorted(d)]]
+    else:
+        return [[x.nid, 0], tuple()]
+
+embeddings = nd.array(np.load('embeddings.npy'))
+x_rdd = post_df.rdd.map(tokenize)
+indptr  = nd.array(np.cumsum([0] + x_rdd.map(fst).map(snd).collect()))
+indices = nd.array(x_rdd.map(snd).flatMap(lambda x: x).map(fst).collect())
+data = nd.array(x_rdd.map(snd).flatMap(lambda x: x).map(snd).collect())
+shape = [len(indptr) - 1, len(embeddings)]
+matrix = nd.sparse.csr_matrix((data, indices, indptr), shape=shape)
+x = nd.sparse.dot(matrix, embeddings).asnumpy()[np.argsort(x_rdd.map(fst).map(fst).collect())]
+
+y = np.array(post_df.rdd.map(lambda row: [row.compact_pid, row.srid]).sortByKey().map(lambda kv: kv[1]).collect())
 unique, inverse = np.unique(y, return_inverse=True)
 y = np.arange(len(unique))[inverse]
 np.save('y', y)
