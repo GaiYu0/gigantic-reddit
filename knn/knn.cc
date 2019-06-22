@@ -82,25 +82,26 @@ int main(int argc, char* *argv) {
     std::vector<std::vector<uint64_t>> knn(n_posts);
     #pragma omp parallel for
     for (uint64_t i = 0; i < n_posts; ++i) {
-        auto first = p2u_indptr.at(i);
-        auto last = p2u_indptr.at(i + 1);
+        auto first = p2u_indices.begin() + p2u_indptr.at(i);
+        auto last = p2u_indices.begin() + p2u_indptr.at(i + 1);
         assert(first < last);
-        multiset_t head;
-        head.reserve(u2p_indptr.at(first + 1) - u2p_indptr.at(first));
-        for (uint64_t k = u2p_indptr.at(first); k < u2p_indptr.at(first + 1); ++k) {
-            head.push_back(std::make_pair(u2p_indices.at(k), 1));
+        multiset_t prev;
+        auto user = *(first++);
+        prev.reserve(u2p_indptr.at(user + 1) - u2p_indptr.at(user));
+        for (uint64_t k = u2p_indptr.at(user); k < u2p_indptr.at(user + 1); ++k) {
+            prev.push_back(std::make_pair(u2p_indices.at(k), 1));
         }
-        auto &prev = head;
-        for (uint64_t j = first + 1; j < last; ++j) {
+        while (first != last) {
             auto next = multiset_t();
-            next.reserve(u2p_indptr.at(first + 1) - u2p_indptr.at(first));
-            for (uint64_t k = u2p_indptr.at(j); k < u2p_indptr.at(j + 1); ++k) {
+            user = *(first++);
+            next.reserve(u2p_indptr.at(user + 1) - u2p_indptr.at(user));
+            for (uint64_t k = u2p_indptr.at(user); k < u2p_indptr.at(user + 1); ++k) {
                 next.push_back(std::make_pair(u2p_indices.at(k), 1));
             }
             auto ret = multiset_t();
             // ret.reserve(prev.size() + next.size());
             merge(prev, next, ret);
-            prev = ret;
+            prev = std::move(ret);
         }
         std::sort(prev.begin(), prev.end(),
                   [](counter_t &lhs, counter_t &rhs) { return lhs.second < rhs.second; });
@@ -110,9 +111,9 @@ int main(int argc, char* *argv) {
     }
 
     std::vector<uint64_t> src, dst;
-    auto m = degree * n_posts;
-    src.reserve(m);
-    dst.reserve(m);
+    auto n_edges = degree * n_posts;
+    src.reserve(n_edges);
+    dst.reserve(n_edges);
     for (auto p = knn.begin(); p != knn.end(); ++p) {
         for (auto q = p->begin(); q != p->end(); ++q) {
             src.push_back(p - knn.begin());
