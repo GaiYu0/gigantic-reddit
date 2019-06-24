@@ -63,7 +63,7 @@ int main(int argc, char* *argv) {
                 map[rhs_indices[k]] += lhs_data[j] * rhs_data[k];
             }
         }
-        std::vector vector(map.begin(), map.end());
+        std::vector<uint64_t, double> vector(map.begin(), map.end());
         auto compare = [](std::pair<uint64_t, double> &lhs, std::pair<uint64_t, double> &rhs) {
             return lhs.second < rhs.second;
         }
