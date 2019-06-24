@@ -33,22 +33,22 @@ int main(int argc, char* *argv) {
     for (int i = 0; i < 6; ++i) {
         switch (i) {
         case 0:
-            loadtxt("lhs-data", lhs_data);
+            loadtxt(argv[2], lhs_data);
             break;
         case 1:
-            loadtxt("lhs-indptr", lhs_indptr);
+            loadtxt(argv[3], lhs_indptr);
             break;
         case 2:
-            loadtxt("lhs-indices", lhs_indices);
+            loadtxt(argv[4], lhs_indices);
             break;
         case 3:
-            loadtxt("rhs-data", rhs_data);
+            loadtxt(argv[5], rhs_data);
             break;
         case 4:
-            loadtxt("rhs-indptr", rhs_indptr);
+            loadtxt(argv[6], rhs_indptr);
             break;
         case 5:
-            loadtxt("rhs-indices", rhs_indices);
+            loadtxt(argv[7], rhs_indices);
             break;
         }
     }
