@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <iterator>
 #include <utility>
@@ -53,6 +54,7 @@ int main(int argc, char* *argv) {
         }
     }
 
+    uint64_t progress = 0;
     std::vector<std::vector<std::pair<uint64_t, double>>> rows(lhs_indptr.size() - 1);
     #pragma omp parallel for
     for (uint64_t i = 0; i < lhs_indptr.size() - 1; ++i) {
@@ -67,6 +69,10 @@ int main(int argc, char* *argv) {
         auto compare = [](const std::pair<uint64_t, double> &lhs, const std::pair<uint64_t, double> &rhs) { return lhs.second < rhs.second; };
         std::stable_sort(vector.begin(), vector.end(), compare);
         rows[i].insert(rows[i].end(), vector.rbegin(), vector.rbegin() + K);
+        #pragma omp atomic
+        if (!(++progress % 10000)) {
+            std::cout << progress << '/' << lhs_indptr.size() << std::endl;
+        }
     }
 
     std::vector<uint64_t> src, dst;
