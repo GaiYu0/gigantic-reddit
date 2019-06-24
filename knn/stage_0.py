@@ -23,20 +23,16 @@ cmnt_df = cmnt_df.join(sc.parallelize(zip(collect_column(post_df, 'pid'), range(
 p2u = cmnt_df.rdd.map(lambda row: [row.compact_pid, row.compact_uid]).groupByKey().sortByKey()
 p2u_indptr = np.cumsum([0] + p2u.map(lambda kv: len(kv[1])).collect())
 p2u_indices = np.array(p2u.flatMap(lambda kv: kv[1]).collect())
-p2u_data = np.ones_like(p2u_indices)
 
 u2p = cmnt_df.rdd.map(lambda row: [row.compact_uid, row.compact_pid]).groupByKey().sortByKey()
 u2p_indptr = np.cumsum([0] + u2p.map(lambda kv: len(kv[1])).collect())
 u2p_indices = np.array(u2p.flatMap(lambda kv: sorted(kv[1])).collect())
-u2p_data = np.ones_like(u2p_indices)
 
 print('# posts:', len(p2u_indptr) - 1)
 print('# users:', len(u2p_indptr) - 1)
 print('# cmnts:', len(p2u_indices))
-dask.compute(dask.delayed(np.savetxt)('p2u-data', p2u_data, fmt='%d'),
-             dask.delayed(np.savetxt)('p2u-indptr', p2u_indptr, fmt='%d'),
+dask.compute(dask.delayed(np.savetxt)('p2u-indptr', p2u_indptr, fmt='%d'),
              dask.delayed(np.savetxt)('p2u-indices', p2u_indices, fmt='%d'),
-             dask.delayed(np.savetxt)('u2p-data', u2p_data, fmt='%d'),
              dask.delayed(np.savetxt)('u2p-indptr', u2p_indptr, fmt='%d'),
              dask.delayed(np.savetxt)('u2p-indices', u2p_indices, fmt='%d'))
 
