@@ -53,7 +53,7 @@ int main(int argc, char* *argv) {
         }
     }
 
-    std::vector<std::vector<uint64_t>> rows;
+    std::vector<std::vector<std::pair<uint64_t, double>>> rows;
     #pragma omp parallel for
     for (uint64_t i = 0; i < lhs_indptr.size() - 1; ++i) {
         std::map<uint64_t, double> map;
