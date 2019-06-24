@@ -69,9 +69,10 @@ int main(int argc, char* *argv) {
         auto compare = [](const std::pair<uint64_t, double> &lhs, const std::pair<uint64_t, double> &rhs) { return lhs.second < rhs.second; };
         std::stable_sort(vector.begin(), vector.end(), compare);
         rows[i].insert(rows[i].end(), vector.rbegin(), vector.rbegin() + K);
-        #pragma omp atomic if
-        if (!(++progress % 10000)) {
-            std::cout << progress << '/' << lhs_indptr.size() << std::endl;
+        #pragma omp atomic capture
+        auto local_progress = ++progress;
+        if (!(local_progress % 10000)) {
+            std::cout << local_progress << '/' << lhs_indptr.size() << std::endl;
         }
     }
 
