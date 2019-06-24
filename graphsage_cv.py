@@ -287,7 +287,6 @@ def graphsage_cv_train(g, ctx, args, n_classes, train_nid, test_nid, n_test_samp
         num_tests = 0
 
         if not distributed or g.worker_id == 0:
-            '''
             for nf in dgl.contrib.sampling.NeighborSampler(g, args.test_batch_size,
                                                            g.number_of_nodes(),
                                                            neighbor_type='in',
@@ -310,5 +309,6 @@ def graphsage_cv_train(g, ctx, args, n_classes, train_nid, test_nid, n_test_samp
                 break
             '''
             nf = dgl.contrib.sampling.create_full_nodeflow()
+            '''
         elif distributed:
                 g._sync_barrier()
