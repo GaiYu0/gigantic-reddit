@@ -64,9 +64,7 @@ int main(int argc, char* *argv) {
             }
         }
         std::vector<std::pair<uint64_t, double>> vector(map.begin(), map.end());
-        auto compare = [](std::pair<uint64_t, double> &lhs, std::pair<uint64_t, double> &rhs) {
-            return lhs.second < rhs.second;
-        };
+        auto compare = [](const std::pair<uint64_t, double> &lhs, const std::pair<uint64_t, double> &rhs) { return lhs.second < rhs.second; };
         std::stable_sort(vector.begin(), vector.end(), compare);
         rows[i].insert(rows[i].end(), vector.rbegin(), vector.rbegin() + K);
     }
