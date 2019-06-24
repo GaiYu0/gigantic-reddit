@@ -57,8 +57,7 @@ int main(int argc, char* *argv) {
     uint64_t progress = 0;
     std::vector<std::vector<std::pair<uint64_t, double>>> rows(lhs_indptr.size() - 1);
     #pragma omp parallel for
-    for (uint64_t i = 0; i < 20000; ++i) {
-    // for (uint64_t i = 0; i < lhs_indptr.size() - 1; ++i) {
+    for (uint64_t i = 0; i < lhs_indptr.size() - 1; ++i) {
         std::map<uint64_t, double> map;
         for (uint64_t j = lhs_indptr[i]; j < lhs_indptr[i + 1]; ++j)  {
             for (uint64_t k = rhs_indptr[lhs_indices[j]];
