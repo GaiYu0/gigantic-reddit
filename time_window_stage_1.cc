@@ -55,6 +55,7 @@ int main(int argc, char* *argv) {
     std::sort(cmnts.begin(), cmnts.end(),
               [](const cmnt_t &x, const cmnt_t &y) { return std::get<2>(x) < std::get<2>(y); });
 
+    uint64_t progress = 0;
     std::vector<uint64_t> ns;
     std::vector<std::vector<pid_pair>> parallel_pid_pairs;
     if (stats_only) {
@@ -85,6 +86,13 @@ int main(int argc, char* *argv) {
                     parallel_pid_pairs.at(i).push_back(std::make_pair(pid_j, pid_i));
                 }
             }
+        }
+
+        uint64_t local_progress;
+        #pragma omp atomic capture
+        local_progress = ++progress;
+        if (!(local_progress % 10000)) {
+            std::cout << local_progress << '/' << n_cmnts << std::endl;
         }
     }
 
