@@ -22,7 +22,6 @@ void save(const char *f, const std::vector<uint64_t> &v) {
 
 typedef std::tuple<uint64_t, uint64_t, uint64_t> cmnt_t;
 typedef std::pair<uint64_t, uint64_t> pid_pair;
-typedef std::multiset<pid_pair> pid_pair_multiset;
 
 int main(int argc, char* *argv) {
     uint64_t T = atoi(argv[1]);
@@ -56,10 +55,10 @@ int main(int argc, char* *argv) {
     std::sort(cmnts.begin(), cmnts.end(),
               [](const cmnt_t &x, const cmnt_t &y) { return std::get<2>(x) < std::get<2>(y); });
 
-    std::vector<uint64_t> parallel_n_pid_pairs;
+    std::vector<uint64_t> ns;
     std::vector<std::vector<pid_pair>> parallel_pid_pairs;
     if (stats_only) {
-        parallel_n_pid_pairs.resize(n_cmnts);
+        ns.resize(n_cmnts);
     } else {
         parallel_pid_pairs.resize(n_cmnts);
     }
@@ -69,7 +68,7 @@ int main(int argc, char* *argv) {
         auto uid_i = std::get<1>(cmnts.at(i));
         auto utc_i = std::get<2>(cmnts.at(i));
         if (stats_only) {
-            parallel_n_pid_pairs.at(i) = 0;
+            ns.at(i) = 0;
         }
         for (uint64_t j = i; j < n_cmnts; ++j) {
             auto pid_j = std::get<0>(cmnts.at(j));
@@ -80,7 +79,7 @@ int main(int argc, char* *argv) {
             }
             if (uid_j == uid_i) {
                 if (stats_only) {
-                    ++parallel_n_pid_pairs.at(i);
+                    ++ns.at(i);
                 } else {
                     parallel_pid_pairs.at(i).push_back(std::make_pair(pid_i, pid_j));
                     parallel_pid_pairs.at(i).push_back(std::make_pair(pid_j, pid_i));
@@ -91,7 +90,7 @@ int main(int argc, char* *argv) {
 
     if (stats_only) {
         uint64_t sum = 0;
-        for (auto p = parallel_n_pid_pairs.begin(); p != parallel_n_pid_pairs.end(); ++p) {
+        for (auto p = ns.begin(); p != ns.end(); ++p) {
             sum += *p;
         }
         std::cout << sum << std::endl;
@@ -101,7 +100,7 @@ int main(int argc, char* *argv) {
             pid_pairs.insert(pid_pairs.end(), p->begin(), p->end());
         }
 
-        pid_pair_multiset multiset(pid_pairs.begin(), pid_pairs.end());
+        std::multiset<pid_pair> multiset(pid_pairs.begin(), pid_pairs.end());
         std::vector<uint64_t> u, v, w;
         u.reserve(multiset.size());
         v.reserve(multiset.size());
@@ -117,13 +116,13 @@ int main(int argc, char* *argv) {
         for (int i = 0; i < 3; ++i) {
             switch (i) {
             case 0:
-                save("u", u);
+                save("u.npy", u);
                 break;
             case 1:
-                save("v", v);
+                save("v.npy", v);
                 break;
             case 2:
-                save("w", w);
+                save("w.npy", w);
                 break;
             }
         }
