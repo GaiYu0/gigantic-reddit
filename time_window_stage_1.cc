@@ -7,20 +7,7 @@
 #include <tuple>
 #include <utility>
 #include <omp.h>
-
-void savetxt(const char *f, std::vector<uint64_t> &a) {
-    std::ofstream s(f);
-    for (auto p = a.begin(); p != a.end(); ++p) {
-        s << *p << std::endl;
-    }
-}
-
-void loadtxt(const char *f, std::vector<uint64_t> &a) {
-    std::ifstream s(f);
-    for (auto p = a.begin(); p != a.end(); ++p) {
-        s >> *p;
-    }
-}
+#include "cnpy.h"
 
 typedef std::tuple<uint64_t, uint64_t, uint64_t> cmnt_t;
 typedef std::pair<uint64_t, uint64_t> pid_pair;
