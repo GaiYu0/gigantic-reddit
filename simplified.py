@@ -22,23 +22,24 @@ for x in args.rs:
     df = ss.read.json(x).select('id').dropna('any')
     rs = df if rs is None else rs.union(df)
 
-rs = rs.withColumnRenamed('id', 'pid')
-rs = rs.withColumn('pid', int36(rs.pid))
-
 rc = None
 for x in args.rc:
     df = ss.read.json(x).select('author', 'created_utc', 'link_id').dropna('any')
     rc = df if rc is None else rc.union(df)
 
+rc = rc.withColumnRenamed('link_id', 'pid')
+rc = rc.withColumn('pid', regexp_replace(rc.pid, 't3_', ''))
+rc = rc.withColumn('pid', int36(rc.pid))
+
+rs = rs.withColumnRenamed('id', 'pid')
+rs = rs.withColumn('pid', int36(rs.pid))
+
+rc = rc.join(rs, 'pid')
+
 authors = rc.select('author').dropDuplicates().rdd.flatMap(id_map).collect()
 authors.remove('[deleted]')
 ra = sc.parallelize(zip(range(len(authors)), authors)).toDF('uid INT, author STRING')
 rc = rc.join(ra, 'author')
-
-rc = rc.withColumnRenamed('link_id', 'pid')
-rc = rc.withColumn('pid', regexp_replace(rc.pid, 't3_', ''))
-rc = rc.withColumn('pid', int36(rc.pid))
-rc = rc.join(rs, 'pid')
 
 rc = rc.withColumn('utc', rc.created_utc.cast(IntegerType()))
 

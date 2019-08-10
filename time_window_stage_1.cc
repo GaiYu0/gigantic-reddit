@@ -16,8 +16,8 @@ void load(const char *f, std::vector<uint64_t> &v) {
 }
 
 void save(const char *f, const std::vector<uint64_t> &v) {
-    auto shape = std::vector
-    cnpy.npy_save(f, v.data(), );
+    auto shape = std::vector<size_t>{v.size()};
+    cnpy::npy_save(f, v.data(), shape);
 }
 
 typedef std::tuple<uint64_t, uint64_t, uint64_t> cmnt_t;
@@ -113,9 +113,20 @@ int main(int argc, char* *argv) {
         }
 
         std::cout << u.size() << std::endl;
-        savetxt("u", u);
-        savetxt("v", v);
-        savetxt("w", w);
+        #pragma omp parallel for
+        for (int i = 0; i < 3; ++i) {
+            switch (i) {
+            case 0:
+                save("u", u);
+                break;
+            case 1:
+                save("v", v);
+                break;
+            case 2:
+                save("w", w);
+                break;
+            }
+        }
     }
 
     return 0;
