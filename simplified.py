@@ -6,7 +6,7 @@ from pyspark.sql.functions import regexp_replace, udf
 from pyspark.sql.session import SparkSession
 import pyspark.sql.types as IntegerType
 
-int36 = udf(partial(int, base=36), types.IntegerType())
+int36 = udf(partial(int, base=36), IntegerType())
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rc', type=str, nargs='+')
