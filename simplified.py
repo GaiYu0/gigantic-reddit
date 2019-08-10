@@ -21,7 +21,6 @@ for x in args.rs:
     rs = df if rs is None else rs.union(df)
 
 rs = rs.withColumnRenamed('id', 'pid')
-rs = rs.withColumn('pid', regexp_replace(rs.pid))
 rs = rs.withColumn('pid', int36(rs.pid))
 
 rc = None

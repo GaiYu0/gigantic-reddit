@@ -14,18 +14,18 @@ typedef std::pair<uint64_t, uint64_t> pid_pair;
 typedef std::multiset<pid_pair> pid_pair_multiset;
 
 int main(int argc, char* *argv) {
-    uint64_t m = atoi(argv[1]);
-    uint64_t T = atoi(argv[2]);
-    bool stats_only = (argc > 3);
+    uint64_t T = atoi(argv[1]);
+    bool stats_only = (argc > 2);
 
-    std::vector<uint64_t> pid(m);
-    std::vector<uint64_t> uid(m);
-    std::vector<uint64_t> utc(m);
+    std::vector<uint64_t> pid;
+    std::vector<uint64_t> uid;
+    std::vector<uint64_t> utc;
     #pragma omp parallel for
     for (int i = 0; i < 3; ++i) {
         switch (i) {
         case 0:
-            loadtxt("pid", pid);
+            auto a = cnpy::npy_load("pid.npy")
+            pid.insert
             break;
         case 1:
             loadtxt("uid", uid);
