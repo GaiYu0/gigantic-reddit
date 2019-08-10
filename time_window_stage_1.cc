@@ -9,6 +9,9 @@
 #include <omp.h>
 #include "cnpy.h"
 
+void load(const char *f, std::vector<uint64_t> &v) {
+}
+
 typedef std::tuple<uint64_t, uint64_t, uint64_t> cmnt_t;
 typedef std::pair<uint64_t, uint64_t> pid_pair;
 typedef std::multiset<pid_pair> pid_pair_multiset;
@@ -25,7 +28,8 @@ int main(int argc, char* *argv) {
         switch (i) {
         case 0:
             auto a = cnpy::npy_load("pid.npy")
-            pid.insert
+            auto p = a.data<uint64_t>();
+            pid.insert(pid.end(), p, p + a.shape[0]);
             break;
         case 1:
             loadtxt("uid", uid);

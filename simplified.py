@@ -6,6 +6,7 @@ from pyspark.sql.functions import regexp_replace, udf
 from pyspark.sql.session import SparkSession
 from pyspark.sql.types import IntegerType
 
+id_map = lambda x: x
 int36 = udf(partial(int, base=36), IntegerType())
 
 parser = argparse.ArgumentParser()
