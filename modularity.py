@@ -8,11 +8,11 @@ def modularity(src, dst, y, n_classes=None):
     n_classes = len(np.unique(y)) if n_classes is None else n_classes
 
     adj = sps.coo_matrix((np.ones(len(src)), (src, dst)), [n, n])
-    d = np.array(adj.sum(1))
+    d = np.array(adj.sum(1)).squeeze()
     mod = adj - sps.coo_matrix((d[src] * d[dst] / (2 * m - 1), (src, dst)), [n, n])
     s = np.zeros([n, n_classes])
     s[np.arange(n), y] = 1
-    return np.sum(s * (mod @ s.transpose())) / (2 * m)
+    return np.sum(s * (mod @ s)) / (2 * m)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
