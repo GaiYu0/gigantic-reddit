@@ -4,7 +4,7 @@ from functools import partial
 import numpy as np
 from pyspark.sql.functions import regexp_replace, udf
 from pyspark.sql.session import SparkSession
-import pyspark.sql.types as IntegerType
+from pyspark.sql.types import IntegerType
 
 int36 = udf(partial(int, base=36), IntegerType())
 
