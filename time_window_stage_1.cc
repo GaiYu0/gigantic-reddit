@@ -10,7 +10,7 @@
 #include "cnpy.h"
 
 void load(const char *f, std::vector<uint64_t> &v) {
-    auto a = cnpy::npy_load(f)
+    auto a = cnpy::npy_load(f);
     auto p = a.data<uint64_t>();
     v.insert(v.end(), p, p + a.shape[0]);
 }
@@ -46,7 +46,7 @@ int main(int argc, char* *argv) {
     }
     auto n_cmnts = pid.size();
 
-    std::vector<cmnt_t> cmnts(m);
+    std::vector<cmnt_t> cmnts(n_cmnts);
     #pragma omp parallel for
     for (uint64_t i = 0; i < n_cmnts; ++i) {
         cmnts.at(i) = std::make_tuple(pid.at(i), uid.at(i), utc.at(i));
