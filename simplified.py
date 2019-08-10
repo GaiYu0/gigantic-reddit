@@ -15,6 +15,7 @@ parser.add_argument('--rs', type=str, nargs='+')
 args = parser.parse_args()
 
 ss = SparkSession.builder.getOrCreate()
+sc = ss.sparkContext
 
 rs = None
 for x in args.rs:

@@ -10,6 +10,14 @@
 #include "cnpy.h"
 
 void load(const char *f, std::vector<uint64_t> &v) {
+    auto a = cnpy::npy_load(f)
+    auto p = a.data<uint64_t>();
+    v.insert(v.end(), p, p + a.shape[0]);
+}
+
+void save(const char *f, const std::vector<uint64_t> &v) {
+    auto shape = std::vector
+    cnpy.npy_save(f, v.data(), );
 }
 
 typedef std::tuple<uint64_t, uint64_t, uint64_t> cmnt_t;
@@ -27,44 +35,43 @@ int main(int argc, char* *argv) {
     for (int i = 0; i < 3; ++i) {
         switch (i) {
         case 0:
-            auto a = cnpy::npy_load("pid.npy")
-            auto p = a.data<uint64_t>();
-            pid.insert(pid.end(), p, p + a.shape[0]);
+            load("pid.npy", pid);
             break;
         case 1:
-            loadtxt("uid", uid);
+            load("uid.npy", uid);
             break;
         case 2:
-            loadtxt("utc", utc);
+            load("utc.npy", utc);
             break;
         }
     }
+    auto n_cmnts = pid.size();
 
     std::vector<cmnt_t> cmnts(m);
     #pragma omp parallel for
-    for (uint64_t i = 0; i < m; ++i) {
+    for (uint64_t i = 0; i < n_cmnts; ++i) {
         cmnts.at(i) = std::make_tuple(pid.at(i), uid.at(i), utc.at(i));
     }
 
     std::sort(cmnts.begin(), cmnts.end(),
-              [](const cmnt_t &c, const cmnt_t &d) { return std::get<2>(c) < std::get<2>(d); });
+              [](const cmnt_t &x, const cmnt_t &y) { return std::get<2>(x) < std::get<2>(y); });
 
     std::vector<uint64_t> parallel_n_pid_pairs;
     std::vector<std::vector<pid_pair>> parallel_pid_pairs;
     if (stats_only) {
-        parallel_n_pid_pairs.resize(m);
+        parallel_n_pid_pairs.resize(n_cmnts);
     } else {
-        parallel_pid_pairs.resize(m);
+        parallel_pid_pairs.resize(n_cmnts);
     }
     #pragma omp parallel for
-    for (uint64_t i = 0; i < m; ++i) {
+    for (uint64_t i = 0; i < n_cmnts; ++i) {
         auto pid_i = std::get<0>(cmnts.at(i));
         auto uid_i = std::get<1>(cmnts.at(i));
         auto utc_i = std::get<2>(cmnts.at(i));
         if (stats_only) {
             parallel_n_pid_pairs.at(i) = 0;
         }
-        for (uint64_t j = i; j < m; ++j) {
+        for (uint64_t j = i; j < n_cmnts; ++j) {
             auto pid_j = std::get<0>(cmnts.at(j));
             auto uid_j = std::get<1>(cmnts.at(j));
             auto utc_j = std::get<2>(cmnts.at(j));
