@@ -1,5 +1,6 @@
 import argparse
 from functools import partial
+import pickle
 
 import numpy as np
 from pyspark.sql.functions import regexp_replace, udf
@@ -12,7 +13,7 @@ int36 = udf(partial(int, base=36), IntegerType())
 parser = argparse.ArgumentParser()
 parser.add_argument('--rc', type=str, nargs='+')
 parser.add_argument('--rs', type=str, nargs='+')
-parser.add_argument('--subreddits', type=str, nargs='+')
+parser.add_argument('--subreddits', type=str)
 args = parser.parse_args()
 
 ss = SparkSession.builder.getOrCreate()
@@ -31,9 +32,12 @@ for x in args.rc:
 rc = rc.dropna('any')
 
 rs = rs.withColumnRenamed('subreddit_id', 'srid')
-rs = rs.filter(rs.srid in pickle.load(open(args.subreddits, 'rb')))
+rs = rs.filter(rs.srid.isin(pickle.load(open(args.subreddits, 'rb'))))
 rs = rs.withColumn('srid', regexp_replace(rs.srid, 't5_', ''))
 rs = rs.withColumn('srid', int36(rs.srid))
+srid = np.array(rs.select('srid').rdd.flatMap(id_map).collect())
+uniq, inv = np.unique(srid, return_inverse=True)
+np.save('srid', np.arange(len(uniq))[inv])
 
 rc = rc.withColumnRenamed('link_id', 'link_id')
 rc = rc.withColumn('link_id', regexp_replace(rc.link_id, 't3_', ''))
@@ -58,4 +62,3 @@ utc = np.array(rc.select('utc').rdd.flatMap(id_map).collect())
 np.save('pid', pid)
 np.save('uid', uid)
 np.save('utc', utc)
-
