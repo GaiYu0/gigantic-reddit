@@ -10,6 +10,7 @@ int36 = udf(partial(int, base=36), types.IntegerType())
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--rc', type=str, nargs='+')
+parser.add_argument('--rs', type=str, nargs='+')
 args = parser.parse_args()
 
 ss = SparkSession.builder.getOrCreate()
